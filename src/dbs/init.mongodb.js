@@ -1,19 +1,38 @@
 'use strict'
 
 const mongoose = require('mongoose')
+const {db: {host, name, port}} = require('../configs/config.mongodb')
 
-const connectionString = `mongodb://localhost:27017/shop-dev`;
+const connectionString = `mongodb://${host}:${port}/${name}`;
 
 class Database {
     constructor() {
         this.connect()
     }
 
-    connect() {
-       
-        mongoose.connect(connectionString).then(_ => console.log(`Connected mongodb success`))
+    connect(type = 'mongodb') {
+        if (1 === 1) {
+            mongoose.set('debug', true); 
+            mongoose.set('debug', {color: true}); 
+        }
+
+        mongoose.connect(connectionString, {
+            maxPoolSize: 50
+        }).then(_ => {
+            console.log(`Connected mongodb success`)
+        })
         .catch(err => console.log(`Error connect`))
+    }
+
+    static getInstance () {
+        if (!Database.instance) {
+            Database.instance = new Database()
+        }
+
+        return Database.instance
     }
 }
 
-module.exports = mongoose
+const instanceMongodb = Database.getInstance()
+
+module.exports = instanceMongodb
