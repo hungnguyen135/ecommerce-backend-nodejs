@@ -2,6 +2,13 @@
 
 ### signup
 POST {{url_dev}}shop/signup
+Content-Type: application/json
+
+{
+    "name": "Shop 1",
+    "email": "shop1@gmail.com",
+    "password": "abc123"
+}
 
 ### signup
 GET http://localhost:3333/
