@@ -6,7 +6,7 @@ const COLLECTION_NAME = 'keys'
 
 // Declare the Schema of the Mongo model
 var keyTokenSchema = new Schema({
-    user:{
+    shop:{
         type:Schema.Types.ObjectId,
         required:true,
         ref:'Shop',

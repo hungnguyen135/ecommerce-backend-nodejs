@@ -4,9 +4,9 @@ const bcrypt = require('bcrypt')
 const crypto = require('node:crypto')
 const shopModel = require("../models/shop.model")
 const keyTokenService = require('./keyToken.service')
-const { createTokenPair } = require('../auth/authUtils')
+const { createTokenPair, verifyJWT } = require('../auth/authUtils')
 const { getInfoData } = require('../utils')
-const { BadRequestError, AuthFailureError } = require('../core/error.response')
+const { BadRequestError, AuthFailureError, ForbiddenError } = require('../core/error.response')
 const KeyTokenService = require('./keyToken.service')
 const { findByEmail } = require('./shop.service')
 
@@ -45,7 +45,7 @@ class AccessService {
             // console.log({privateKey, publicKey}) 
 
             // const publicKeyString = await keyTokenService.createKeyToken({
-            //     userId: newShop.id,
+            //     shopId: newShop.id,
             //     publicKey
             // })
 
@@ -58,7 +58,7 @@ class AccessService {
 
             // const publicKeyObject = crypto.createPublicKey(publicKeyString)
             // // create token pair
-            // const token = await createTokenPair({userId: newShop.id, email}, publicKeyObject, privateKey)
+            // const token = await createTokenPair({shopId: newShop.id, email}, publicKeyObject, privateKey)
             // console.log(`Create token success::`, token);
 
             // return {
@@ -74,7 +74,7 @@ class AccessService {
             const publicKey = crypto.randomBytes(64).toString('hex')
 
             const keyStores = await keyTokenService.createKeyToken({
-                userId: newShop.id,
+                shopId: newShop.id,
                 publicKey,
                 privateKey
             })
@@ -86,7 +86,7 @@ class AccessService {
                 }
             }
 
-            const tokens = await createTokenPair({userId: newShop.id, email}, publicKey, privateKey)
+            const tokens = await createTokenPair({shopId: newShop.id, email}, publicKey, privateKey)
             console.log(`Create token success::`, tokens);
 
             return {
@@ -108,7 +108,7 @@ class AccessService {
         const foundShop = await findByEmail({email})
         if (!foundShop) throw new BadRequestError('Shop not registered!')
 
-        const {_id: userId} = foundShop
+        const {_id: shopId} = foundShop
 
         const math = bcrypt.compare(password, foundShop.password)
         if (!math) throw new AuthFailureError('Authentication error!')
@@ -116,10 +116,10 @@ class AccessService {
         const privateKey = crypto.randomBytes(64).toString('hex')
         const publicKey = crypto.randomBytes(64).toString('hex')
 
-        const tokens = await createTokenPair({userId, email}, publicKey, privateKey)
+        const tokens = await createTokenPair({shopId, email}, publicKey, privateKey)
 
         await KeyTokenService.createKeyToken({
-            userId, 
+            shopId, 
             publicKey, 
             privateKey, 
             refreshToken: tokens.refreshToken
@@ -127,6 +127,42 @@ class AccessService {
 
         return {
             shop: getInfoData({fields: ['_id', 'name', 'email'], object: foundShop}),
+            tokens
+        }
+    }
+
+    static logout = async ({keyStore}) => {
+        const delKey = await KeyTokenService.deleteOneKeyById(keyStore._id)
+        return delKey
+    }
+
+    static handleRefreshToken = async ({keyStore, shop, refreshToken}) => {
+        const {shopId, email} = shop
+
+        if (keyStore.refreshTokensUsed.includes(refreshToken)) {
+            await KeyTokenService.deleteOneKeyByShop(shopId)
+            throw new ForbiddenError('Something wrong happend! Please re-login!')
+        }
+
+        if (keyStore.refreshToken !== refreshToken) throw new AuthFailureError('Shop not registered!')
+
+        const foundShop = await findByEmail({email})
+        if (!foundShop) throw new AuthFailureError('Shop not registered!')
+
+        // tao 1 cap token moi
+        const tokens = await createTokenPair({shopId, email}, keyStore.publicKey, keyStore.privateKey)
+        // update token 
+        await keyStore.updateOne({
+            $set: {
+                refreshToken: tokens.refreshToken
+            },
+            $addToSet: {
+                refreshTokensUsed: refreshToken
+            }
+        })
+
+        return {
+            shop,
             tokens
         }
     }
