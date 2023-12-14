@@ -2,6 +2,7 @@
 
 const { BadRequestError } = require('../core/error.response')
 const {productModel, clothesModel, electronicModel} = require('../models/product.model')
+const { insertInventory } = require('../models/repositories/inventory.repo')
 const { queryProduct, publishProductByShop, unPublishProductByShop, searchProduct, getAllProducts, getProduct, updateProductById } = require('../models/repositories/product.repo')
 const { removeUndefinedObject, updateNestedObjectParser } = require('../utils')
 
@@ -84,7 +85,12 @@ class Product {
             _id: productId
         })
         if (newProduct) {
-
+            // add product stock in inventory collection
+            await insertInventory({
+                productId: newProduct._id,
+                shopId: this.shop,
+                stock: this.quantity
+            })        
         }
 
         return newProduct
