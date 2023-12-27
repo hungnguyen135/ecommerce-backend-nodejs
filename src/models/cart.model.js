@@ -8,12 +8,12 @@ const COLLECTION_NAME = "carts";
 var cartSchema = new Schema(
   {
     state: {
-      type: Types.String,
-      reuired: true,
+      type: String,
+      required: true,
       enum: ['active', 'completed', 'failed', 'pending'],
       default: 'active'
     },
-    product: {
+    products: {
       type: Array,
       required: true,
       default: [],

@@ -1,6 +1,6 @@
 'use strict'
 
-const { getSelectData, unGetSelectData } = require('../../utils')
+const { getSelectData, unGetSelectData, convertToObjectIdMongoDb } = require('../../utils')
 const {productModel, clothesModel, electronicModel} = require('../product.model')
 const {Types} = require('mongoose')
 
@@ -103,6 +103,26 @@ const getProduct = async ({productId, unSelect}) => {
     return await productModel.findById(productId).select(unGetSelectData(unSelect))
 }
 
+const getProductById = async (productId) => {
+    return await productModel.findOne({_id: convertToObjectIdMongoDb(productId)}).lean()
+}
+
+const checkProductByServer = async (products) => {
+    return await Promise.all(products.map(async product => {
+        console.log(product.productId);
+        const foundProduct = await getProductById(product.productId)
+        console.log(foundProduct);
+        
+        if (foundProduct) {
+            return {
+                price: foundProduct.price,
+                quantity: product.quantity,
+                productId: product.productId
+            }
+        }
+    }))
+}
+
 module.exports = {
     publishProductByShop,
     unPublishProductByShop,
@@ -112,5 +132,7 @@ module.exports = {
     queryProduct,
     searchProduct,
     getAllProducts,
-    getProduct
+    getProduct,
+    getProductById,
+    checkProductByServer
 }

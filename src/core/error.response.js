@@ -20,13 +20,13 @@ class ErrorResponse extends Error {
 }
 
 class ConflictRequestError extends ErrorResponse {
-    constructor(message = reasonStatusCode.CONFLICT, status = statusCode.CONFLICT) {
+    constructor(message = ReasonPhrases.CONFLICT, status = StatusCodes.CONFLICT) {
         super(message, status)
     }
 }
 
 class BadRequestError extends ErrorResponse {
-    constructor(message = reasonStatusCode.CONFLICT, status = statusCode.CONFLICT) {
+    constructor(message = ReasonPhrases.BAD_REQUEST, status = StatusCodes.BAD_REQUEST) {
         super(message, status)
     }
 }
