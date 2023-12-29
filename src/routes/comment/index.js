@@ -6,10 +6,12 @@ const asyncHandler = require('../../helpers/asyncHandler')
 const { authentication } = require('../../auth/authUtils')
 const router = express.Router()
 
-router.post('/', asyncHandler(commentController.createComment))
+
 // router.get('/:productId', asyncHandler(productController.getProduct))
 
-// router.use(authentication)
+router.use(authentication)
+
+router.post('/', asyncHandler(commentController.createComment))
 
 // router.post('', asyncHandler(productController.createProduct))
 
