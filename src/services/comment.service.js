@@ -1,5 +1,6 @@
 'use strict'
 
+const { NotFoundError } = require("../core/error.response")
 const commentModel = require("../models/comment.model")
 const { convertToObjectIdMongoDb } = require("../utils")
 
@@ -18,9 +19,31 @@ class CommentService {
             parentId: parentCommentId
         })
 
-        let rightvalue
+        let rightValue
         if(parentCommentId) {
             // reply comment
+            const parentComment = await commentModel.findById(parentCommentId)
+            if (!parentComment) throw new NotFoundError('Parent comment not found')
+
+            rightValue = parentComment.right
+
+            await commentModel.updateMany({
+                productId: convertToObjectIdMongoDb(productId),
+                right: {$gte: rightValue}
+            }, {
+                $inc: {
+                    right: 2
+                }
+            })
+
+            await commentModel.updateMany({
+                productId: convertToObjectIdMongoDb(productId),
+                left: {$gt: rightValue}
+            }, {
+                $inc: {
+                    left: 2
+                }
+            })
 
         } else {
             const maxRightValue = await commentModel.findOne({
@@ -28,17 +51,58 @@ class CommentService {
             }, 'right', {sort: {right: -1}})
 
             if (maxRightValue) {
-                rightvalue = maxRightValue + 1
+                rightValue = maxRightValue + 1
             } else {
-                rightvalue = 1
+                rightValue = 1
             }
         }
 
-        comment.left = rightvalue
-        comment.right = rightvalue + 1
+        comment.left = rightValue
+        comment.right = rightValue + 1
 
         await comment.save()
         return comment
+    }
+
+    static async getCommentsByParentId({
+        productId,
+        parentCommentId = null,
+        limit = 50,
+        offset = 0
+    }) {
+        if (parentCommentId) {
+            const parent = await commentModel.findById(parentCommentId)
+            if (!parent) throw new NotFoundError('Not found comment for product')
+
+            const comments = await commentModel.find({
+                productId: convertToObjectIdMongoDb(productId),
+                left: {$gt: parent.left},
+                right: {$lte: parent.right}
+            }).select({
+                left: 1,
+                right: 1,
+                content: 1,
+                parentId: 1
+            }).sort({
+                left: 1
+            })
+
+            return comments
+        }
+
+        const comments = await commentModel.find({
+            productId: convertToObjectIdMongoDb(productId),
+            parentId: convertToObjectIdMongoDb(parentCommentId),
+        }).select({
+            left: 1,
+            right: 1,
+            content: 1,
+            parentId: 1
+        }).sort({
+            left: 1
+        })
+
+        return comments
     }
 }
 
