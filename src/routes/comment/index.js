@@ -12,6 +12,8 @@ const router = express.Router()
 router.use(authentication)
 
 router.post('/', asyncHandler(commentController.createComment))
+router.delete('/', asyncHandler(commentController.deleteComment))
+router.get('/', asyncHandler(commentController.getCommentsByParentId))
 
 // router.post('', asyncHandler(productController.createProduct))
 

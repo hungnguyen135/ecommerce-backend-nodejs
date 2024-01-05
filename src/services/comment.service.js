@@ -2,6 +2,7 @@
 
 const { NotFoundError } = require("../core/error.response")
 const commentModel = require("../models/comment.model")
+const { getProduct } = require("../models/repositories/product.repo")
 const { convertToObjectIdMongoDb } = require("../utils")
 
 class CommentService {
@@ -92,7 +93,7 @@ class CommentService {
 
         const comments = await commentModel.find({
             productId: convertToObjectIdMongoDb(productId),
-            parentId: convertToObjectIdMongoDb(parentCommentId),
+            parentId: parentCommentId,
         }).select({
             left: 1,
             right: 1,
@@ -103,6 +104,60 @@ class CommentService {
         })
 
         return comments
+    }
+
+    static async deleteComment({
+        commentId, 
+        productId
+    }) {
+        const foundProduct = await getProduct({
+            productId
+        })
+        if (!foundProduct) throw new NotFoundError('Product not found!')
+
+        // xac dinh gia tri left va right cua comment
+        const comment = await commentModel.findById(commentId)
+        if (!comment) throw new NotFoundError('Comment not found!')
+
+        const leftValue = comment.left
+        const rightValue = comment.right
+
+        // tinh width
+        const width = rightValue - leftValue
+
+        // xoa tat ca comment con
+        await commentModel.deleteMany({
+            productId: convertToObjectIdMongoDb(productId),
+            left: {
+                $gte: leftValue,
+                $lte: rightValue
+            }
+        })
+
+        // cap nhat gia tri left va right con lai
+        await commentModel.updateMany({
+            productId: convertToObjectIdMongoDb(productId),
+            right: {
+                $gt: rightValue
+            }
+        }, {
+            $inc: {
+                right: -width
+            }
+        })
+
+        await commentModel.updateMany({
+            productId: convertToObjectIdMongoDb(productId),
+            left: {
+                $gt: rightValue
+            }
+        }, {
+            $inc: {
+                left: -width
+            }
+        })
+        
+        return true
     }
 }
 
