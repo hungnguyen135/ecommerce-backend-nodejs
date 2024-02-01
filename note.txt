@@ -1,0 +1,28 @@
+docker run --name mysql8-master --network my_master_slave_mysql -p 8811:3306 -e MYSQL_ROOT_PASSWORD=hung135 mysql:8.0
+
+docker cp <container_id>:<copy_path> <paste_path>
+- docker cp .\mysql\master\my.cnf 9632ea3b9dfe:/etc
+
+docker exec -it <container> bash
+
+mysql -uroot -p
+# MYSQL
+show master status;
+show variables like 'server_id';
+
+## Lấy network
+docker inspect <container_id>
+
+# MYSQL
+CHANGE MASTER TO 
+MASTER_HOST='172.18.0.2',
+MASTER_PORT=3306,
+MASTER_USER='root',
+MASTER_PASSWORD='hung135',
+MASTER_LOG_FILE='mysql-bin.000001',
+MASTER_LOG_POS=340,
+MASTER_CONNECT_RETRY=60,
+GET_MASTER_PUBLIC_KEY=1;
+
+STOP/START SLAVE;
+STOP/START REPLICA;
