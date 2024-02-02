@@ -166,6 +166,23 @@ class AccessService {
             tokens
         }
     }
+
+    static fetchWithRetry = async (url = 'localhost:3333', errorCount = 0) => {ư
+        const ERROR_COUNT_MAX = 3;
+
+        const response = await fetch(url)
+        if (response.status < 200 || response.status >= 300) {
+            if (errorCount <= ERROR_COUNT_MAX) {
+                setTimeout(async () => {
+                    await this.fetchWithRetry(url, errorCount + 1)
+                }, Math.pow(2, errorCount) * 3000 + Math.random() * 1000) // 3100, 3200..., 3900
+            }
+        } 
+
+        return response
+    }
+
+
 }
 
 module.exports = AccessService

@@ -19,10 +19,55 @@ MASTER_HOST='172.18.0.2',
 MASTER_PORT=3306,
 MASTER_USER='root',
 MASTER_PASSWORD='hung135',
-MASTER_LOG_FILE='mysql-bin.000001',
-MASTER_LOG_POS=340,
+MASTER_LOG_FILE='mysql-bin.000002',
+MASTER_LOG_POS=157,
 MASTER_CONNECT_RETRY=60,
 GET_MASTER_PUBLIC_KEY=1;
 
 STOP/START SLAVE;
 STOP/START REPLICA;
+
+// SQL test
+CREATE TABLE test_table (
+    id INT NOT NULL,
+    name VARCHAR(255) DEFAULT NULL,
+    age INT DEFAULT NULL,
+    address VARCHAR(255) DEFAULT NULL,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE orders (
+    order_id INT,
+    order_date DATE NOT NULL,
+    total_amount DECIMAL(10, 2),
+    PRIMARY KEY (order_id, order_date)
+)
+PARTITION BY RANGE COLUMNS (order_date) (
+	PARTITION p2022 VALUES LESS THAN ('2022-01-01'),
+	PARTITION p2023 VALUES LESS THAN ('2023-01-01'),
+	PARTITION p2024 VALUES LESS THAN ('2024-01-01'),
+    PARTITION pmax VALUES LESS THAN (MAXVALUE)
+)
+
+SELECT COUNT(1) FROM shopDev.test_table;
+
+EXPLAIN SELECT * FROM orders;
+EXPLAIN SELECT * FROM orders PARTITION (p2024);
+
+INSERT INTO orders (order_id, order_date, total_amount) VALUES (3, '2024-01-01', 50000);
+
+SELECT NOW();
+
+CALL create_table_auto_month();
+
+SHOW EVENTS;
+DROP EVENT create_table_auto_month_event;
+
+CREATE EVENT `create_table_auto_month_event`
+ON SCHEDULE EVERY 1 MONTH
+STARTS
+	'2024-02-02 10:25:00'
+ON COMPLETION
+	PRESERVE ENABLE -- khong coa bo count thoi gian khi thuc hien xong
+DO 
+	CALL create_table_auto_month();
