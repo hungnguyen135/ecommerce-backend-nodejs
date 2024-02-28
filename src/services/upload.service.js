@@ -2,8 +2,13 @@
 
 const crypto = require("crypto");
 const cloudinary = require("../configs/cloudinary.config");
+const urlImagePublic = 'https://di96fbk3rh2pt.cloudfront.net';
 const {BadRequestError} = require("../core/error.response");
-const {PutObjectCommand, s3} = require("../configs/s3.config");
+const {s3, PutObjectCommand, GetObjectCommand, DeleteObjectCommand} = require("../configs/s3.config");
+// const {getSignedUrl} = require("@aws-sdk/s3-request-presigner");
+const { getSignedUrl } = require("@aws-sdk/cloudfront-signer");
+
+const randomImageName = () => crypto.randomBytes(16).toString('hex')
 
 // Upload from url image
 const uploadImageFromUrl = async () => {
@@ -85,17 +90,39 @@ const uploadFileWithS3 = async (req) => {
             throw new BadRequestError('File missing!')
         }
 
-        const randomImageName = () => crypto.randomBytes(16).toString('hex')
+        const imageName = randomImageName()
         const command = new PutObjectCommand({
             Bucket: process.env.AWS_BUCKET_NAME,
-            Key: randomImageName(),
+            Key: imageName,
             Body: file.buffer,
             ContentType: 'image/jpeg'
         })
 
         const result = await s3.send(command)
 
-        return result
+        // export url
+        // // use s3-request-presigner
+        // const signedUrl = new GetObjectCommand({
+        //     Bucket: process.env.AWS_BUCKET_NAME,
+        //     Key: imageName
+        // })
+        // const url = await getSignedUrl(s3, signedUrl, { expiresIn: 3600 });
+
+        // use CloudFront
+        return {
+            url: `${urlImagePublic}/${imageName}`,
+            result
+        }
+
+        // use cloudfront signer
+        const signedUrl = getSignedUrl({
+            url: `${urlImagePublic}/${imageName}`,
+            keyPairId: 'K3LZVA7ZBSU10Z', // ID cua public key trong cloud front
+            dateLessThan: new Date(Date.now() + 1000 * 60), // het han sau 60s
+            privateKey: process.env.AWS_BUCKET_PRIVATE_KEY
+        });
+
+        // return url
     } catch (error) {
         console.error(error);
     }
