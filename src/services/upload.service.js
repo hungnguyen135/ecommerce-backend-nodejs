@@ -1,6 +1,7 @@
 'use strict'
 
-const crypto = require("crypto");
+const fs = require('node:fs');
+const crypto = require("node:crypto");
 const cloudinary = require("../configs/cloudinary.config");
 const urlImagePublic = 'https://di96fbk3rh2pt.cloudfront.net';
 const {BadRequestError} = require("../core/error.response");
@@ -109,18 +110,28 @@ const uploadFileWithS3 = async (req) => {
         // const url = await getSignedUrl(s3, signedUrl, { expiresIn: 3600 });
 
         // use CloudFront
-        return {
-            url: `${urlImagePublic}/${imageName}`,
-            result
-        }
+        // return {
+        //     url: `${urlImagePublic}/${imageName}`,
+        //     result
+        // }
 
         // use cloudfront signer
+        const url = `${urlImagePublic}/${imageName}`;
+        const privateKey = fs.readFileSync('./src/keys/private_key.pem', 'utf-8');
+        const keyPairId = "K3LZVA7ZBSU10Z"; // ID cua public key trong cloud front
+        const dateLessThan = new Date(Date.now() + 1000 * 60); // het han sau 60s
+
         const signedUrl = getSignedUrl({
-            url: `${urlImagePublic}/${imageName}`,
-            keyPairId: 'K3LZVA7ZBSU10Z', // ID cua public key trong cloud front
-            dateLessThan: new Date(Date.now() + 1000 * 60), // het han sau 60s
-            privateKey: process.env.AWS_BUCKET_PRIVATE_KEY
+            url,
+            keyPairId,
+            dateLessThan,
+            privateKey
         });
+
+        return {
+            signedUrl,
+            result
+        }
 
         // return url
     } catch (error) {
