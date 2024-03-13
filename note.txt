@@ -78,3 +78,7 @@ openssl genrsa -out private_key.pem 2048
 
 // Tao public key
 openssl rsa -pubout -in private_key.pem -out public_key.pem
+
+// Xem duong dan thu muc hien tai
+pwd
+
