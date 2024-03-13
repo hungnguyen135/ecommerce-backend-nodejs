@@ -8,6 +8,10 @@ const router = express.Router()
 // log discord
 // router.use(pushToLogDiscord)
 
+router.get('/', (req, res) => {
+    res.send('Hi cậu!');
+});
+
 // check apiKey
 router.use(apiKey)
 // check permission
