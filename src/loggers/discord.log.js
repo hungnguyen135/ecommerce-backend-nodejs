@@ -16,7 +16,7 @@ discordClient.on('ready', () => {
     console.log(`Logged is as ${discordClient.user.tag}`);
 })
 
-discordClient.login(DISCORD_TOKEN)
+// discordClient.login(DISCORD_TOKEN)
 
 discordClient.on('messageCreate', msg => {
     if (msg.author.bot) return
